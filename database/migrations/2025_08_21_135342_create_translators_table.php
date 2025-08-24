@@ -17,6 +17,7 @@ return new class extends Migration
             $table->string('email')->unique();
             $table->string('password');
             $table->string('profile');
+            $table->integer('gender');
             $table->double('rating')->default(0);
             $table->integer('status')->default(1);
             $table->timestamps();

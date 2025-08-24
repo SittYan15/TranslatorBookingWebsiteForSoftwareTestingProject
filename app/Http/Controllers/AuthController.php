@@ -11,7 +11,7 @@ class AuthController extends Controller
 {
     public function auth()
     {
-        $image = "img/website/auth_background.jpg";
+        $image = "public/img/website/auth_background.jpg";
         return view('auth', ['bg_image' => $image]);
     }
 
@@ -50,5 +50,14 @@ class AuthController extends Controller
         Auth::login($user);
 
         return redirect('/search'); // Change to your dashboard route
+    }
+
+    public function logout(Request $request)
+    {
+        Auth::logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+
+        return redirect('/'); // Change to your desired route
     }
 }

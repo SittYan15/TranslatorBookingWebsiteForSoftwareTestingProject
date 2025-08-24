@@ -21,6 +21,7 @@ return new class extends Migration
             $table->integer('duration_mins');
             $table->integer('status')->default(0);
             $table->foreignId('service_id')->constrained('services')->onDelete('cascade');
+            $table->string('location')->default('Assumption University');
             $table->timestamps();
         });
     }

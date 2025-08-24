@@ -11,6 +11,7 @@ class Translator extends Model
         'email',
         'password',
         'profile',
+        'gender',
         'rating',
         'status',
     ];
