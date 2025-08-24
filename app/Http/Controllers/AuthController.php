@@ -24,12 +24,10 @@ class AuthController extends Controller
 
         if (Auth::attempt($credentials)) {
             $request->session()->regenerate();
-            return redirect()->intended('/search'); // Change to your dashboard route
+            return redirect()->intended('/search')->with('success', 'Login successful!'); // Change to your dashboard route
         }
 
-        return back()->withErrors([
-            'email' => 'The provided credentials do not match our records.',
-        ]);
+        return back()->with('error', 'Invalid credentials. Please try again.');
     }
 
     public function signup(Request $request)
@@ -49,7 +47,7 @@ class AuthController extends Controller
 
         Auth::login($user);
 
-        return redirect('/search'); // Change to your dashboard route
+        return redirect('/search')->with('success', 'Registration successful!'); // Change to your dashboard route
     }
 
     public function logout(Request $request)
@@ -58,6 +56,6 @@ class AuthController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        return redirect('/'); // Change to your desired route
+        return redirect('/')->with('success', 'Logout successful!'); // Change to your desired route
     }
 }

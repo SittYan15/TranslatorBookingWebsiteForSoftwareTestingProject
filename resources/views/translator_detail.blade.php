@@ -127,7 +127,7 @@
                         <span class="text-danger fw-semibold">Inactive</span>
                     @endif
                 </div>
-                <a href="{{ route('bookings.create', ['translator_id' => encrypt($translator->id)]) }}"
+                <a href="{{ route('bookings.create', ['translator_id' => encrypt($translator->id), 'date' => now()->format('Y-m-d')]) }}"
                     class="btn btn-success btn-book px-4 mt-2">
                     <i class="bi bi-calendar-plus"></i> Book Now
                 </a>
@@ -147,7 +147,7 @@
                             <span class="badge bg-primary service-badge">
                                 {{ $service->language1 }} <i class="bi bi-arrow-left-right"></i>
                                 {{ $service->language2 }}
-                                <span class="ms-1 text-light">(${{ $service->price }})</span>
+                                <span class="ms-1 text-light">(฿{{ $service->price }})</span>
                             </span>
                         @endforeach
                     @else

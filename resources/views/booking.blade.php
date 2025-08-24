@@ -71,8 +71,8 @@
                     <option value="">Select a service</option>
                     @foreach ($translator->services as $service)
                         <option value="{{ $service->service_id }}">
-                            {{ $service->language1 }} <i class="bi bi-arrow-left-right"></i> {{ $service->language2 }}
-                            (&#36;{{ $service->price }})
+                            {{ $service->language1 }} <-> {{ $service->language2 }}
+                                (฿{{ $service->price }})
                         </option>
                     @endforeach
                 </select>
@@ -84,7 +84,8 @@
             </div>
             <div class="mb-3">
                 <label for="location" class="form-label">Location</label>
-                <input type="text" class="form-control" name="location" id="location" placeholder="Enter location" required>
+                <input type="text" class="form-control" name="location" id="location" placeholder="Enter location"
+                    required>
             </div>
             <div class="mb-3">
                 <label for="booking_start_time" class="form-label">Start Time</label>
@@ -102,9 +103,92 @@
                         max="59" required>
                 </div>
             </div>
-            <button type="submit" class="btn btn-success w-100">
+            <button type="button" class="btn btn-success w-100" id="openConfirmModal">
                 <i class="bi bi-calendar-plus"></i> Confirm Booking
             </button>
         </form>
     </div>
+
+    <!-- Confirmation Modal -->
+    <div class="modal fade" id="confirmBookingModal" tabindex="-1" aria-labelledby="confirmBookingLabel"
+        aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title" id="confirmBookingLabel"><i class="bi bi-calendar-check"></i> Confirm Booking
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                        aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-2">
+                        <strong>Date:</strong> <span id="modalBookingDate"></span>
+                    </div>
+                    <div class="mb-2">
+                        <strong>Time:</strong> <span id="modalBookingTime"></span>
+                    </div>
+                    <div class="mb-2">
+                        <strong>Location:</strong> <span id="modalBookingLocation"></span>
+                    </div>
+                    <div class="mb-2">
+                        <strong>Duration:</strong> <span id="modalBookingDuration"></span>
+                    </div>
+                    <div class="mb-2">
+                        <strong>Price:</strong> ฿<span id="modalBookingPrice"></span>
+                    </div>
+                    <hr>
+                    Are you sure you want to confirm this booking?
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-success" id="modalConfirmBtn">Yes, Confirm</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const modal = new bootstrap.Modal(document.getElementById('confirmBookingModal'));
+            const openBtn = document.getElementById('openConfirmModal');
+            const confirmBtn = document.getElementById('modalConfirmBtn');
+            const form = document.querySelector('form');
+
+            openBtn.addEventListener('click', function() {
+                // run validation and show messages if invalid
+                if (form.reportValidity()) {
+
+                    const getSelectedServicePrice = () => {
+                        const serviceSelect = document.getElementById('service_id');
+                        const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
+                        const priceMatch = selectedOption.text.match(/฿\d+(\.\d{1,2})?/);
+                        return priceMatch ? parseFloat(priceMatch[0].replace('฿', '')) : 0;
+                    };
+                    // Fill modal info
+                    document.getElementById('modalBookingDate').textContent = document.getElementById(
+                        'booking_date').value;
+                    document.getElementById('modalBookingTime').textContent = document.getElementById(
+                        'booking_start_time').value;
+                    document.getElementById('modalBookingLocation').textContent = document.getElementById(
+                        'location').value;
+                    const hrs = parseInt(document.getElementById('duration_hrs').value) || 0;
+                    const mins = parseInt(document.getElementById('duration_mins').value) || 0;
+                    document.getElementById('modalBookingDuration').textContent = `${hrs} hrs ${mins} mins`;
+
+                    // Calculate price
+                    const pricePerHour = getSelectedServicePrice();
+                    const totalPrice = (hrs + mins / 60) * pricePerHour;
+                    document.getElementById('modalBookingPrice').textContent = totalPrice.toFixed(2);
+
+                    modal.show();
+                }
+            });
+
+            confirmBtn.addEventListener('click', function() {
+                form.submit();
+            });
+        });
+    </script>
+
 @endsection
