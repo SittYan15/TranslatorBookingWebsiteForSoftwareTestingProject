@@ -11,4 +11,9 @@ class ViewController extends Controller
         // Logic for the search view can be added here
         return view('search'); // Assuming you have a 'search' view
     }
+
+    public function translator_detail()
+    {
+        return view('translator_detail');
+    }
 }

@@ -9,6 +9,9 @@ class Translator extends Model
     protected $fillable = [
         'name',
         'email',
+        'password',
         'profile',
+        'rating',
+        'status',
     ];
 }
