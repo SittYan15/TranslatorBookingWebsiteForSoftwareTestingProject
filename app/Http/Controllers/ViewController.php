@@ -79,7 +79,8 @@ class ViewController extends Controller
         $location = $request->input('location');
         $service_id = $request->input('service_id');
 
-        $result = MainController::createBooking($translator_id, $date, $start_time, $duration_hrs, $duration_mins, $location, $service_id);
+        $result = MainController::createBooking($translator_id, $date,
+        $start_time, $duration_hrs, $duration_mins, $location, $service_id);
 
         if ($result) {
             return redirect()->route('bookings.create', [

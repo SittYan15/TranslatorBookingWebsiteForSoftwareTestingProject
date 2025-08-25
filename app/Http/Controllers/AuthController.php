@@ -24,7 +24,7 @@ class AuthController extends Controller
 
         if (Auth::attempt($credentials)) {
             $request->session()->regenerate();
-            return redirect()->intended('/search')->with('success', 'Login successful!'); // Change to your dashboard route
+            return redirect()->intended('/search')->with('success', 'Login successful!');
         }
 
         return back()->with('error', 'Invalid credentials. Please try again.');
@@ -47,7 +47,7 @@ class AuthController extends Controller
 
         Auth::login($user);
 
-        return redirect('/search')->with('success', 'Registration successful!'); // Change to your dashboard route
+        return redirect('/search')->with('success', 'Registration successful!');
     }
 
     public function logout(Request $request)
@@ -56,6 +56,6 @@ class AuthController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        return redirect('/')->with('success', 'Logout successful!'); // Change to your desired route
+        return redirect('/')->with('success', 'Logout successful!');
     }
 }

@@ -69,57 +69,77 @@ class MainController extends Controller
 
         // Filter by rating
         if ($rating) {
-            $translators = $translators->filter(function ($translator) use ($rating) {
-                return $translator->rating >= $rating;
-            })->values();
+            $translators = self::filterByRating($translators, $rating);
         }
 
         // Filter by service languages (position-independent)
         if ($language1 || $language2) {
-            $translators = $translators->filter(function ($translator) use ($language1, $language2) {
-                foreach ($translator->services as $service) {
-                    if ($language1 && $language2) {
-                        if (
-                            ($service->language1_id == $language1 && $service->language2_id == $language2) ||
-                            ($service->language1_id == $language2 && $service->language2_id == $language1)
-                        ) {
-                            return true;
-                        }
-                    } elseif ($language1) {
-                        if ($service->language1_id == $language1 || $service->language2_id == $language1) {
-                            return true;
-                        }
-                    } elseif ($language2) {
-                        if ($service->language1_id == $language2 || $service->language2_id == $language2) {
-                            return true;
-                        }
-                    }
-                }
-                return false;
-            })->values();
+            $translators = self::filterByLanguages($translators, $language1, $language2);
         }
 
         // Filter by availability on date only
         if ($date) {
-            $translators = $translators->filter(function ($translator) use ($date) {
-                $hasBooking = DB::table('bookings')
-                    ->where('translator_id', $translator->id)
-                    ->where('booking_date', $date)
-                    ->exists();
-                // Add a property for availability on the selected date
-                $translator->is_available = !$hasBooking;
-                return true; // Don't filter out, just annotate
-            })->values();
+            $translators = self::filterByDate($translators, $date);
         }
 
         // Filter by availableOnly (show only available translators on the selected date)
         if ($availableOnly) {
-            $translators = $translators->filter(function ($translator) {
-                return $translator->is_available ?? true;
-            })->values();
+            $translators = self::filterByAvailableOnly($translators);
         }
 
         return $translators;
+    }
+
+    private static function filterByRating($translators, $rating)
+    {
+        return $translators->filter(function ($translator) use ($rating) {
+            return $translator->rating >= $rating;
+        })->values();
+    }
+
+    private static function filterByLanguages($translators, $language1, $language2)
+    {
+        return $translators->filter(function ($translator) use ($language1, $language2) {
+            foreach ($translator->services as $service) {
+                if ($language1 && $language2) {
+                    if (
+                        ($service->language1_id == $language1 && $service->language2_id == $language2) ||
+                        ($service->language1_id == $language2 && $service->language2_id == $language1)
+                    ) {
+                        return true;
+                    }
+                } elseif ($language1) {
+                    if ($service->language1_id == $language1 || $service->language2_id == $language1) {
+                        return true;
+                    }
+                } elseif ($language2) {
+                    if ($service->language1_id == $language2 || $service->language2_id == $language2) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        })->values();
+    }
+
+    private static function filterByDate($translators, $date)
+    {
+        return $translators->filter(function ($translator) use ($date) {
+            $hasBooking = DB::table('bookings')
+                ->where('translator_id', $translator->id)
+                ->where('booking_date', $date)
+                ->exists();
+            // Add a property for availability on the selected date
+            $translator->is_available = !$hasBooking;
+            return true; // Don't filter out, just annotate
+        })->values();
+    }
+
+    private static function filterByAvailableOnly($translators)
+    {
+        return $translators->filter(function ($translator) {
+            return $translator->is_available ?? true;
+        })->values();
     }
 
     public static function getLanguages()
