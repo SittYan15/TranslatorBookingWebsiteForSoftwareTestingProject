@@ -2,9 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Controllers\EnDe;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Carbon;
 
 class ViewController extends Controller
 {
@@ -40,9 +39,21 @@ class ViewController extends Controller
         $rating = $request->input('rating');
         $availableOnly = $request->input('available_only');
 
+        $today = Carbon::today()->toDateString();
+
+        if ($date != null && $date < $today) {
+            return redirect()->back()->with('error', $date . ' is not valid');
+        }
+
         $languages = MainController::getLanguages();
 
-        $translators = MainController::filterTranslators($date, $language1, $language2, $rating, $availableOnly);
+        $translators = MainController::filterTranslators(
+            $date,
+            $language1,
+            $language2,
+            $rating,
+            $availableOnly
+        );
 
         return view('search', [
             'translators' => $translators,
@@ -79,8 +90,21 @@ class ViewController extends Controller
         $location = $request->input('location');
         $service_id = $request->input('service_id');
 
-        $result = MainController::createBooking($translator_id, $date,
-        $start_time, $duration_hrs, $duration_mins, $location, $service_id);
+        $today = Carbon::today()->toDateString();
+
+        if ($date != null && $date < $today) {
+            return redirect()->back()->with('error', $date . ' is not valid');
+        }
+
+        $result = MainController::createBooking(
+            $translator_id,
+            $date,
+            $start_time,
+            $duration_hrs,
+            $duration_mins,
+            $location,
+            $service_id
+        );
 
         if ($result) {
             return redirect()->route('bookings.create', [

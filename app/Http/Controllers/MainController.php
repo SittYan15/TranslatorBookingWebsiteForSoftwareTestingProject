@@ -2,31 +2,29 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
+use App\Http\Controllers\DatabaseController;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\DB;
 
 class MainController extends Controller
 {
     public static function getTranslators()
     {
-        $translators = DB::table('translators')->get();
+        $translators = DatabaseController::getTranslators();
 
         return self::getAdditionalInfoForTranslator($translators);
     }
 
     public static function getTranslatorsByName($name)
     {
-        $translators = DB::table('translators')
-            ->where('name', 'like', '%' . $name . '%')
-            ->get();
+        $translators = DatabaseController::getTranslatorByName($name);
 
         return self::getAdditionalInfoForTranslator($translators);
     }
 
     public static function getTranslatorById($id)
     {
-        $translator = DB::table('translators')->where('id', $id)->first();
+        $translator = DatabaseController::getTranslatorById($id);
+
         return self::getAdditionalInfoForTranslator(collect([$translator]))->first();
     }
 
@@ -36,25 +34,10 @@ class MainController extends Controller
 
         // For each translator, get their services with language info
         foreach ($translators as $translator) {
-            $translator->services = DB::table('services')
-                ->join('languages as lang1', 'services.language1_id', '=', 'lang1.id')
-                ->join('languages as lang2', 'services.language2_id', '=', 'lang2.id')
-                ->select([
-                    'services.id as service_id',
-                    'lang1.language as language1',
-                    'lang1.id as language1_id',
-                    'lang2.language as language2',
-                    'lang2.id as language2_id',
-                    'services.price',
-                ])
-                ->where('services.translator_id', $translator->id)
-                ->get();
+            $translator->services = DatabaseController::getTranslatorServices($translator->id);
 
             // Check if translator has any bookings today
-            $hasBookingToday = DB::table('bookings')
-                ->where('translator_id', $translator->id)
-                ->where('booking_date', $today)
-                ->exists();
+            $hasBookingToday = DatabaseController::checkTranslatorHasBookingByDate($translator->id, $today);
 
             // Add property to indicate availability
             $translator->is_available = !$hasBookingToday;
@@ -68,22 +51,22 @@ class MainController extends Controller
         $translators = self::getTranslators();
 
         // Filter by rating
-        if ($rating) {
+        if ($rating != null) {
             $translators = self::filterByRating($translators, $rating);
         }
 
         // Filter by service languages (position-independent)
-        if ($language1 || $language2) {
+        if ($language1 != null || $language2 != null) {
             $translators = self::filterByLanguages($translators, $language1, $language2);
         }
 
         // Filter by availability on date only
-        if ($date) {
+        if ($date != null) {
             $translators = self::filterByDate($translators, $date);
         }
 
         // Filter by availableOnly (show only available translators on the selected date)
-        if ($availableOnly) {
+        if ($availableOnly != null) {
             $translators = self::filterByAvailableOnly($translators);
         }
 
@@ -92,88 +75,107 @@ class MainController extends Controller
 
     private static function filterByRating($translators, $rating)
     {
-        return $translators->filter(function ($translator) use ($rating) {
-            return $translator->rating >= $rating;
-        })->values();
+        $result = [];
+
+        foreach ($translators as $translator) {
+            if ($translator->rating >= $rating) {
+                $result[] = $translator;
+            }
+        }
+
+        return collect($result)->values();
     }
 
     private static function filterByLanguages($translators, $language1, $language2)
     {
-        return $translators->filter(function ($translator) use ($language1, $language2) {
+        $result = [];
+
+        foreach ($translators as $translator) {
             foreach ($translator->services as $service) {
+
+                $lang1Id = $service->language1_id;
+                $lang2Id = $service->language2_id;
+
                 if ($language1 && $language2) {
-                    if (
-                        ($service->language1_id == $language1 && $service->language2_id == $language2) ||
-                        ($service->language1_id == $language2 && $service->language2_id == $language1)
-                    ) {
-                        return true;
+                    $langCon1 = $lang1Id == $language1 && $lang2Id == $language2;
+                    $langCon2 = $lang1Id == $language2 && $lang2Id == $language1;
+
+                    if ($langCon1 || $langCon2) {
+                        $result[] = $translator;
+                        break;
                     }
                 } elseif ($language1) {
-                    if ($service->language1_id == $language1 || $service->language2_id == $language1) {
-                        return true;
+                    $lang1Con = $lang1Id == $language1 || $$lang2Id == $language1;
+                    if ($lang1Con) {
+                        $result[] = $translator;
+                        break;
                     }
                 } elseif ($language2) {
-                    if ($service->language1_id == $language2 || $service->language2_id == $language2) {
-                        return true;
+                    $lang2Con = $lang1Id == $language2 || $lang2Id == $language2;
+                    if ($lang2Con) {
+                        $result[] = $translator;
+                        break;
                     }
                 }
             }
-            return false;
-        })->values();
+        }
+        return collect($result)->values();
     }
 
     private static function filterByDate($translators, $date)
     {
-        return $translators->filter(function ($translator) use ($date) {
-            $hasBooking = DB::table('bookings')
-                ->where('translator_id', $translator->id)
-                ->where('booking_date', $date)
-                ->exists();
+        $result = [];
+
+        foreach ($translators as $translator) {
+            $hasBooking = DatabaseController::checkTranslatorHasBookingByDate($translator->id, $date);
             // Add a property for availability on the selected date
             $translator->is_available = !$hasBooking;
-            return true; // Don't filter out, just annotate
-        })->values();
+            $result[] = $translator;
+        }
+
+        return collect($result)->values();
     }
 
     private static function filterByAvailableOnly($translators)
     {
-        return $translators->filter(function ($translator) {
-            return $translator->is_available ?? true;
-        })->values();
+        $result = [];
+
+        foreach ($translators as $translator) {
+            if ($translator->is_available ?? true) {
+                $result[] = $translator;
+            }
+        }
+
+        return collect($result)->values();
     }
 
     public static function getLanguages()
     {
-        return DB::table('languages')->get();
+        return DatabaseController::getLanguages();
     }
 
     public static function createBooking($translator_id, $date, $start_time, $duration_hrs, $duration_mins, $location, $service_id)
     {
         // Check if the translator already has a booking at this date and time
-        $hasBooking = DB::table('bookings')
-            ->where('translator_id', $translator_id)
-            ->where('booking_date', $date)
-            ->exists();
+        $hasBooking = DatabaseController::checkTranslatorHasBookingByDate($translator_id, $date);
 
-        if ($hasBooking) {
+        if ($hasBooking != null) {
             return false;
         }
 
-        // Store the booking
-        DB::table('bookings')->insert([
-            'translator_id' => $translator_id,
-            'user_id' => auth()->id(),
-            'booking_date' => $date,
-            'booking_start_time' => $start_time,
-            'duration_hrs' => $duration_hrs,
-            'duration_mins' => $duration_mins,
-            'location' => $location,
-            'service_id' => $service_id,
-            'status' => 0,
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
+        $user_id = Auth()->user()->id;
 
-        return true;
+        $result = DatabaseController::saveBooking(
+            $translator_id,
+            $user_id,
+            $date,
+            $start_time,
+            $duration_hrs,
+            $duration_mins,
+            $location,
+            $service_id
+        );
+
+        return $result;
     }
 }
